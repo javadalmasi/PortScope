@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IP Range HTTP/HTTPS Scanner</title>
+<style>
+:root{
+  --bg:#0b1020; --card:#111730; --card2:#0d1329; --line:#232b4a;
+  --txt:#e7ecff; --muted:#8b93b8; --accent:#38bdf8; --ok:#34d399;
+  --warn:#fbbf24; --bad:#f87171;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  background:radial-gradient(1200px 800px at 80% -10%, #16204a 0%, var(--bg) 55%);
+  color:var(--txt);min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 40px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+h1{margin:0;font-size:26px;letter-spacing:.2px}
+.accent{color:var(--accent)}
+.sub{margin:6px 0 0;color:var(--muted);max-width:680px}
+.card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+  border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.grid{display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 1fr;gap:12px}
+@media(max-width:980px){.grid{grid-template-columns:1fr 1fr}}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.span2{grid-column:span 2}
+@media(max-width:980px){.span2{grid-column:span 2}}
+input{background:#0a0f22;border:1px solid var(--line);color:var(--txt);border-radius:8px;
+  padding:9px 11px;font-size:14px;outline:none;width:100%}
+input:focus{border-color:var(--accent)}
+input[type=checkbox]{width:auto}
+.pair{display:flex;align-items:center;gap:6px}
+.dash{color:var(--muted)}
+.check{flex-direction:row;align-items:center;gap:8px;color:var(--txt);font-size:13px}
+.row2{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:12px;flex-wrap:wrap}
+.btns{display:flex;gap:8px}
+button{border:1px solid var(--line);background:#1a2246;color:var(--txt);padding:9px 16px;
+  border-radius:9px;font-size:13.5px;cursor:pointer;transition:.15s}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#04121f;font-weight:600}
+button.ghost{background:transparent}
+.progressRow{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.bar{flex:1;min-width:220px;height:8px;background:#0a0f22;border:1px solid var(--line);
+  border-radius:99px;overflow:hidden}
+#barFill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--ok));transition:width .2s}
+.stats{display:flex;gap:14px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+.stats b{color:var(--txt);font-variant-numeric:tabular-nums}
+.stats .ok b{color:var(--ok)}
+.statusmsg{margin-top:10px;color:var(--muted);font-size:13px}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.toolbar input{max-width:260px}
+.muted{color:var(--muted)}
+.spacer{flex:1}
+.tableWrap{overflow:auto;max-height:56vh;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{position:sticky;top:0;background:#0a0f22;text-align:left;padding:10px 12px;color:var(--muted);
+  font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap;z-index:1}
+tbody td{padding:9px 12px;border-bottom:1px solid #1a2140;vertical-align:top}
+tbody tr:hover{background:#141b3a}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.03em}
+.b80{background:rgba(56,189,248,.15);color:#7dd3fc;border:1px solid rgba(56,189,248,.35)}
+.b443{background:rgba(52,211,153,.13);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+.good{color:var(--ok)} .mid{color:var(--warn)} .slow{color:var(--bad)}
+.ttitle{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.chip{padding:6px 14px;border-radius:99px;font-size:12.5px;font-weight:600;border:1px solid var(--line);white-space:nowrap}
+.chip.idle{color:var(--muted)}
+.chip.run{color:var(--accent);border-color:rgba(56,189,248,.4);animation:pulse 1.2s infinite}
+.chip.done{color:var(--ok);border-color:rgba(52,211,153,.4)}
+.chip.err{color:var(--bad);border-color:rgba(248,113,113,.4)}
+@keyframes pulse{50%{opacity:.55}}
+footer{color:var(--muted);font-size:12px;margin-top:8px}
+footer code{background:#0a0f22;border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a2246;
+  border:1px solid var(--accent);color:var(--txt);padding:10px 18px;border-radius:10px;
+  opacity:0;transition:.25s;pointer-events:none;z-index:10}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>IP Range <span class="accent">HTTP/HTTPS</span> Scanner</h1>
+      <p class="sub">Fast parallel scanner — checks which hosts in a range serve HTTP (port 80) or HTTPS (port 443). Runs entirely on your machine; results stream in live.</p>
+    </div>
+    <div id="statusChip" class="chip idle">Idle</div>
+  </header>
+
+  <section class="card">
+    <div class="grid">
+      <label class="span2">Target (x = wildcard octet, CIDR supported)
+        <input id="target" value="5.218.21.x" placeholder="5.218.21.x  ·  5.218.x.x  ·  10.0.0.0/24" spellcheck="false">
+      </label>
+      <label>Ports
+        <input id="ports" value="80, 443" spellcheck="false">
+      </label>
+      <label>Octet range
+        <span class="pair">
+          <input id="start" type="number" min="0" max="255" value="0">
+          <span class="dash">–</span>
+          <input id="end" type="number" min="0" max="255" value="255">
+        </span>
+      </label>
+      <label>Timeout (ms)
+        <input id="timeout" type="number" min="50" max="15000" value="800">
+      </label>
+      <label>Concurrency
+        <input id="concurrency" type="number" min="1" max="5000" value="1000">
+      </label>
+    </div>
+    <div class="row2">
+      <label class="check"><input id="grab" type="checkbox" checked> Fetch page titles &amp; server headers (slightly slower)</label>
+      <div class="btns">
+        <button id="startBtn" class="primary">▶ Start scan</button>
+        <button id="stopBtn" disabled>■ Stop</button>
+        <button id="clearBtn" class="ghost">Clear</button>
+      </div>
+    </div>
+    <div class="progressRow">
+      <div class="bar"><div id="barFill"></div></div>
+      <div class="stats">
+        <span>Checks <b id="stTotal">0</b></span>
+        <span>Scanned <b id="stScanned">0</b></span>
+        <span class="ok">Open <b id="stFound">0</b></span>
+        <span>Rate <b id="stRate">0/s</b></span>
+        <span>Elapsed <b id="stElapsed">0.0s</b></span>
+      </div>
+    </div>
+    <div id="statusMsg" class="statusmsg">Ready. Enter a target and start scanning.</div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <input id="filter" placeholder="Filter results…" spellcheck="false">
+      <span id="countLabel" class="muted">0 results</span>
+      <span class="spacer"></span>
+      <button id="copyBtn" class="ghost">Copy IPs</button>
+      <button id="csvBtn" class="ghost">Export CSV</button>
+    </div>
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th data-k="ip">IP</th>
+          <th data-k="port">Port</th>
+          <th data-k="scheme">Scheme</th>
+          <th data-k="status">Status</th>
+          <th data-k="title">Title</th>
+          <th data-k="server">Server</th>
+          <th data-k="tls">TLS CN</th>
+          <th data-k="latencyMs">Latency</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty">No open hosts yet — results appear here live as they are found.</div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Targets accept <code>x</code> wildcards in any octet (e.g. <code>5.218.21.x</code>, <code>5.218.x.x</code>) or CIDR like <code>10.0.0.0/24</code>. Scanning is performed by the local Go backend — only scan networks you own or are authorized to test.</p>
+  </footer>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const tbody = $('#tbody'), emptyEl = $('#empty');
+let results = [];
+let running = false, total = 0, scanned = 0, found = 0;
+let sortKey = 'ip', sortDir = 1;
+const RENDER_CAP = 5000;
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---- SSE ----
+const handlers = {
+  start(m){
+    running = true; results = []; tbody.innerHTML = '';
+    total = m.checks; scanned = 0; found = 0;
+    $('#stRate').textContent = '0/s'; $('#stElapsed').textContent = '0.0s';
+    setChip('run', 'Scanning'); setStatus(`Scanning ${m.target} — ${m.checks} checks across ${m.hosts} hosts…`);
+    $('#stopBtn').disabled = false; $('#startBtn').disabled = true;
+    updateBar(); updateCounts(); applyView();
+  },
+  result(m){
+    found++; results.push(m); updateCounts(); scheduleFlush();
+  },
+  progress(m){
+    scanned = m.scanned; found = m.found;
+    $('#stRate').textContent = Math.round(m.rate) + '/s';
+    $('#stElapsed').textContent = (m.elapsedMs/1000).toFixed(1) + 's';
+    updateBar(); updateCounts();
+  },
+  done(m){
+    running = false; scanned = m.scanned; found = m.found;
+    $('#stopBtn').disabled = true; $('#startBtn').disabled = false;
+    $('#stElapsed').textContent = (m.elapsedMs/1000).toFixed(1) + 's';
+    updateBar(); updateCounts(); applyView();
+    const msg = m.stopped
+      ? `Stopped — ${m.scanned}/${total} checks done, ${m.found} open hosts found`
+      : `Done — ${m.found} open host${m.found===1?'':'s'} out of ${m.scanned} checks in ${(m.elapsedMs/1000).toFixed(1)}s`;
+    setChip(m.stopped ? 'idle' : (m.found > 0 ? 'done' : 'idle'), m.stopped ? 'Stopped' : 'Done');
+    setStatus(msg);
+  },
+  error(m){
+    running = false; $('#stopBtn').disabled = true; $('#startBtn').disabled = false;
+    setChip('err', 'Error'); setStatus(m.message);
+  }
+};
+const es = new EventSource('/api/stream');
+es.onmessage = e => { try { const m = JSON.parse(e.data); (handlers[m.type] || (()=>{}))(m); } catch(_){} };
+
+// ---- rendering ----
+let flushScheduled = false;
+function scheduleFlush(){ if (flushScheduled) return; flushScheduled = true; requestAnimationFrame(applyView); }
+
+function cmp(a, b){
+  if (sortKey === 'ip'){
+    const pa = a.ip.split('.').map(Number), pb = b.ip.split('.').map(Number);
+    for (let i = 0; i < 4; i++){ if (pa[i] !== pb[i]) return (pa[i] - pb[i]) * sortDir; }
+    return (a.port - b.port) * sortDir;
+  }
+  let va = a[sortKey], vb = b[sortKey];
+  if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sortDir;
+  va = String(va || ''); vb = String(vb || '');
+  return va.localeCompare(vb) * sortDir;
+}
+
+function rowHTML(r){
+  const lat = (r.latencyMs ?? '');
+  const latCls = lat === '' ? '' : (lat < 120 ? 'good' : lat < 400 ? 'mid' : 'slow');
+  return `<tr>
+    <td><a href="${r.scheme}://${esc(r.ip)}:${r.port}/" target="_blank" rel="noopener">${esc(r.ip)}</a></td>
+    <td class="mono">${r.port}</td>
+    <td><span class="badge ${r.scheme === 'https' ? 'b443' : 'b80'}">${r.scheme.toUpperCase()}</span></td>
+    <td class="mono">${esc(r.status || '—')}</td>
+    <td class="ttitle" title="${esc(r.title)}">${esc(r.title || '')}</td>
+    <td class="mono">${esc(r.server || '')}</td>
+    <td class="mono">${esc(r.tls || '')}</td>
+    <td class="mono ${latCls}">${lat !== '' ? lat + ' ms' : ''}</td>
+  </tr>`;
+}
+
+function applyView(){
+  flushScheduled = false;
+  const q = $('#filter').value.trim().toLowerCase();
+  let arr = results;
+  if (q) arr = results.filter(r =>
+    (r.ip + ' ' + r.port + ' ' + r.scheme + ' ' + (r.status||'') + ' ' + (r.title||'') + ' ' + (r.server||'') + ' ' + (r.tls||''))
+      .toLowerCase().includes(q));
+  arr = [...arr].sort(cmp);
+  const cap = Math.min(arr.length, RENDER_CAP);
+  let html = '';
+  for (let i = 0; i < cap; i++) html += rowHTML(arr[i]);
+  tbody.innerHTML = html;
+  $('#countLabel').textContent =
+    (arr.length === results.length ? `${results.length} results` : `${arr.length} of ${results.length} results`)
+    + (arr.length > RENDER_CAP ? ` (showing first ${RENDER_CAP})` : '');
+  emptyEl.style.display = results.length ? 'none' : 'block';
+}
+
+function updateBar(){
+  const pct = total ? Math.min(100, scanned / total * 100) : 0;
+  $('#barFill').style.width = pct + '%';
+}
+function updateCounts(){
+  $('#stTotal').textContent = total;
+  $('#stScanned').textContent = scanned;
+  $('#stFound').textContent = found;
+}
+function setStatus(msg){ $('#statusMsg').textContent = msg; }
+function setChip(cls, label){ const c = $('#statusChip'); c.className = 'chip ' + cls; c.textContent = label; }
+let toastT;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---- sorting ----
+function updateSortIndicators(){
+  document.querySelectorAll('th[data-k]').forEach(th => {
+    th.textContent = th.textContent.replace(/ [▲▼]$/, '');
+    if (th.dataset.k === sortKey) th.textContent += sortDir === 1 ? ' ▲' : ' ▼';
+  });
+}
+document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
+  const k = th.dataset.k;
+  if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+  updateSortIndicators(); applyView();
+});
+updateSortIndicators();
+$('#filter').oninput = scheduleFlush;
+
+// ---- controls ----
+const FIELDS = ['target','ports','start','end','timeout','concurrency'];
+function saveSettings(){
+  const s = { grab: $('#grab').checked };
+  for (const k of FIELDS) s[k] = $('#'+k).value;
+  localStorage.setItem('iphttp.settings', JSON.stringify(s));
+}
+(function restoreSettings(){
+  try {
+    const s = JSON.parse(localStorage.getItem('iphttp.settings') || 'null');
+    if (!s) return;
+    for (const k of FIELDS) if (s[k] != null) $('#'+k).value = s[k];
+    if (s.grab != null) $('#grab').checked = s.grab;
+  } catch(_){}
+})();
+
+$('#startBtn').onclick = async () => {
+  const ports = $('#ports').value.split(',').map(s => parseInt(s.trim(), 10)).filter(n => n >= 1 && n <= 65535);
+  if (!ports.length){ setStatus('Enter at least one valid port (1–65535).'); return; }
+  saveSettings();
+  const body = {
+    target: $('#target').value,
+    ports,
+    start: +$('#start').value,
+    end: +$('#end').value,
+    timeoutMs: +$('#timeout').value,
+    concurrency: +$('#concurrency').value,
+    grabBanner: $('#grab').checked,
+  };
+  try {
+    const res = await fetch('/api/scan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!res.ok) setStatus('Error: ' + await res.text());
+  } catch (err) { setStatus('Request failed: ' + err.message); }
+};
+$('#stopBtn').onclick = () => fetch('/api/stop', { method:'POST' });
+$('#clearBtn').onclick = () => {
+  results = []; total = 0; scanned = 0; found = 0;
+  updateBar(); updateCounts(); applyView();
+  $('#stRate').textContent = '0/s'; $('#stElapsed').textContent = '0.0s';
+  setStatus('Ready.'); setChip('idle', 'Idle');
+};
+$('#copyBtn').onclick = async () => {
+  const ips = [...new Set(results.map(r => r.ip))];
+  if (!ips.length){ toast('No results to copy'); return; }
+  await navigator.clipboard.writeText(ips.join('\n'));
+  toast(`Copied ${ips.length} IP${ips.length === 1 ? '' : 's'}`);
+};
+function csvCell(v){ v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+$('#csvBtn').onclick = () => {
+  if (!results.length){ toast('No results to export'); return; }
+  const head = 'ip,port,scheme,status,server,title,tls_cn,latency_ms';
+  const lines = results.map(r => [r.ip, r.port, r.scheme, r.status||'', r.server||'',
+    (r.title||'').replace(/\s+/g,' '), r.tls||'', r.latencyMs ?? ''].map(csvCell).join(','));
+  const blob = new Blob([head + '\n' + lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scan_${$('#target').value.replace(/[^\w.]/g,'_')}_${Date.now()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`Exported ${results.length} rows`);
+};
+</script>
+</body>
+</html>
