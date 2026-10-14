@@ -1,4 +1,4 @@
-// iphttp — fast parallel HTTP/HTTPS (80/443) scanner for IP ranges with a web UI.
+// PortScope — fast parallel HTTP/HTTPS (80/443) scanner for IP ranges with a web UI.
 package main
 
 import (
@@ -591,7 +591,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot listen on %s: %v", *addr, err)
 	}
-	log.Printf("IP Range HTTP/HTTPS Scanner -> %s  (Ctrl+C to quit)", u)
+	log.Printf("PortScope — IP Range HTTP/HTTPS Scanner -> %s  (Ctrl+C to quit)", u)
 	if *open {
 		go openBrowser(u)
 	}

@@ -1,0 +1,8 @@
+# Compiled binaries
+portscope
+iphttp
+*.exe
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
